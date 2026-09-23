@@ -1,0 +1,301 @@
+<!doctype html>
+<html lang="pl"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111827"><link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon-192.png">
+<title>Budżet</title>
+<style>
+:root{--bg:#08051a;--card:rgba(18,10,42,.88);--text:#f8f4ff;--muted:#b8acd1;--line:#3a2464;--green:#2df5a8;--red:#ff4f9a;--pink:#ff2da8;--cyan:#19e7ff;--orange:#ff9d3d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0%,#32115d 0,#120827 38%,#08051a 75%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);min-height:100vh}
+.app{max-width:560px;margin:auto;padding:calc(14px + env(safe-area-inset-top)) 14px calc(28px + env(safe-area-inset-bottom))}
+h1{font-size:30px;margin:4px 0 2px}.sub{color:var(--muted);font-size:14px}.card{background:linear-gradient(145deg,rgba(30,13,60,.94),rgba(9,7,28,.94));border:1px solid #5a2a86;border-radius:18px;padding:16px;margin-top:12px;box-shadow:0 0 22px rgba(255,45,168,.10)}
+.row{display:flex;justify-content:space-between;gap:12px;align-items:center}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.big{font-size:28px;font-weight:750}.green{color:var(--green)}.red{color:var(--red)}
+label{display:block;font-size:13px;color:var(--muted);margin:10px 0 5px}input,select{width:100%;padding:13px;border:1px solid #5a2a86;border-radius:12px;background:#0d0924;color:#fff;font-size:17px}
+button{border:0;border-radius:12px;padding:12px 15px;font-size:16px;font-weight:700;background:linear-gradient(90deg,#ff2da8,#ff5c75);color:#fff;box-shadow:0 0 16px rgba(255,45,168,.22)}button.secondary{background:rgba(31,22,62,.95);color:#fff;border:1px solid #5a2a86}button.danger{background:#3b102d;color:#ff86bd;border:1px solid #9b286a}
+.tabs{display:flex;gap:8px;overflow:auto;padding:4px 0 2px}.tab{white-space:nowrap;background:#e9ebef;color:#374151;padding:9px 13px;border-radius:999px;font-size:14px}.tab.active{background:linear-gradient(90deg,#ff2da8,#8c45ff);color:#fff}
+.stat{font-size:13px;color:var(--muted)}.money{font-weight:750;font-size:19px}.progress{height:9px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:9px}.bar{height:100%;background:#111827;border-radius:99px}
+.week{margin-top:10px}.weekhead{display:flex;justify-content:space-between;align-items:center}.expense{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}.small{font-size:12px;color:var(--muted)}
+.notice{background:#f3f4f6;border-radius:12px;padding:11px;font-size:13px;margin-top:10px}.actions{display:flex;gap:8px;margin-top:12px}.actions button{flex:1}.topbtn{margin-top:10px;width:100%}
+.modal{position:fixed;inset:0;background:#0007;display:none;align-items:flex-end;z-index:100;overscroll-behavior:contain}
+.sheet{background:#fff;color:#171225;width:100%;max-width:560px;margin:auto;border-radius:22px 22px 0 0;padding:20px calc(20px + env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom));max-height:92dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;touch-action:pan-y}
+.sheet input,.sheet select,.sheet textarea{color:#f8f4ff;background:#08051a}
+.sheet h2,.sheet label,.sheet p{color:#171225}
+.sheet button.secondary{color:#fff}
+canvas{width:100%;height:210px;background:#fafafa;border-radius:14px;margin-top:12px}.lock{position:fixed;inset:0;background:var(--bg);z-index:30;display:flex;align-items:center;justify-content:center;padding:25px}.lockbox{width:min(420px,100%);background:#fff;padding:22px;border-radius:22px;border:1px solid var(--line)}
+
+.bottomnav{position:sticky;bottom:10px;z-index:20;margin-top:14px;display:grid;grid-template-columns:repeat(5,1fr);gap:6px;padding:7px;background:rgba(8,5,26,.94);backdrop-filter:blur(14px);border:1px solid #5a2a86;border-radius:18px;box-shadow:0 8px 30px rgba(0,0,0,.45)}
+.bottomnav button{padding:10px 5px;font-size:11px;min-height:48px}.bottomnav .navicon{display:block;font-size:17px;margin-bottom:2px}.summary{margin-top:12px}.summary summary{cursor:pointer;list-style:none;font-weight:700}.summary summary::-webkit-details-marker{display:none}.summary summary:after{content:'⌄';float:right;color:var(--cyan);font-size:20px}.summary[open] summary:after{content:'⌃'}.summarygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}.summaryitem{padding:10px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.03)}
+</style></head><body>
+<div id="lock" class="lock"><div class="lockbox">
+<h1>🔒 Budżet</h1><p class="sub">Dane są szyfrowane lokalnie. Ustaw hasło/PIN do aplikacji.</p>
+<label>Hasło / PIN</label><input id="pass" type="password" autocomplete="new-password">
+<div class="actions"><button onclick="unlock()">Odblokuj</button></div><div id="lockmsg" class="small"></div>
+</div></div>
+<div class="app" id="app" style="display:none">
+<div class="row"><div><h1>Budżet</h1><div class="sub">Prywatny budżet • bez konta</div></div><button class="secondary" onclick="openMonth()">+ Miesiąc</button></div>
+<div class="card"><div class="row"><div><b>💰 Pula oszczędności</b><div class="sub">Narastająco</div></div><div class="row"><span class="big green" id="pool">0 zł</span><button class="danger" style="padding:8px 10px" onclick="resetSavings()">Wyzeruj</button></div></div></div>
+<div id="monthArea"></div><div id="empty" class="card" style="display:none;text-align:center;padding:30px">Brak miesiąca.<br><br><button onclick="openMonth()">Dodaj miesiąc po wypłacie</button></div>
+<details class="card summary" id="summaryPanel"><summary>📊 Podsumowania miesięcy / lat / tygodni</summary><div id="summaryContent" class="small" style="margin-top:12px"></div></details>
+<div class="bottomnav">
+<button onclick="openIncome()"><span class="navicon">＋</span>Wpłata</button>
+<button onclick="openExpense()"><span class="navicon">＋</span>Wydatek</button>
+<button onclick="openEditMonth()"><span class="navicon">✎</span>Edytuj</button>
+<button onclick="resetSavings()"><span class="navicon">↺</span>Wyzeruj</button>
+<button onclick="toggleSummary()"><span class="navicon">📊</span>Podsum.</button>
+</div>
+</div>
+
+<div class="modal" id="monthModal"><div class="sheet"><div class="row"><h2>Nowa wypłata</h2><button class="secondary" onclick="closeModal('monthModal')">✕</button></div>
+<label>Miesiąc</label><select id="mMonth"></select>
+<label>Rok</label><select id="mYear"></select>
+<label>Dzień rozpoczęcia miesiąca budżetowego</label><input id="mStartDay" type="number" min="1" max="31" value="1">
+<div class="notice">Tygodnie będą liczone od wybranego dnia jako <b>Tydzień 1, Tydzień 2, Tydzień 3...</b>. Okres kończy się zawsze 10. dnia kolejnego miesiąca.</div>
+<label>Wypłata</label><input id="mSalary" type="number" step=".01" placeholder="np. 10000">
+<label>Cel oszczędności</label><input id="mSave" type="number" step=".01" value="2000">
+<label>Stałe opłaty</label><input id="mFixed" type="number" step=".01" placeholder="np. 3500">
+<div class="notice">Cel oszczędności trafia od razu do wspólnej puli. Reszta po opłatach dzieli się na kolejne tygodnie od wybranego dnia rozpoczęcia.</div>
+<div class="actions"><button onclick="addMonth()">Utwórz miesiąc</button></div></div></div>
+
+
+<div class="modal" id="editMonthModal"><div class="sheet">
+<div class="row"><h2>Edytuj miesiąc</h2><button class="secondary" onclick="closeModal('editMonthModal')">✕</button></div>
+<label>Wypłata</label><input id="xSalary" type="number" step=".01">
+<label>Cel oszczędności</label><input id="xSave" type="number" step=".01">
+<label>Stałe opłaty</label><input id="xFixed" type="number" step=".01">
+<div class="notice">Zmiana celu oszczędności lub opłat przeliczy budżet pozostały na tygodnie.</div>
+<div class="actions"><button onclick="editMonth()">Zapisz zmiany</button></div>
+</div></div>
+
+<div class="modal" id="fixedModal"><div class="sheet">
+<div class="row"><h2>Stałe opłaty</h2><button class="secondary" onclick="closeModal('fixedModal')">✕</button></div>
+<label>Nazwa</label><input id="fName" placeholder="np. Czynsz">
+<label>Kwota</label><input id="fAmount" type="number" step=".01">
+<div class="actions"><button onclick="addFixed()">Dodaj opłatę</button></div>
+<div id="fixedList"></div>
+</div></div>
+
+<div class="modal" id="incomeModal"><div class="sheet">
+<div class="row"><h2>Dodaj wpłatę</h2><button class="secondary" onclick="closeModal('incomeModal')">✕</button></div>
+<label>Kwota</label><input id="iAmount" type="number" step=".01" placeholder="np. 500">
+<label>Opis</label><input id="iDesc" placeholder="np. premia">
+<label>Co zrobić z wpłatą?</label><select id="iMode"><option value="budget">Dodaj do budżetu bieżącego miesiąca</option><option value="saving">Dodaj do oszczędności</option></select>
+<div class="notice">Dodatkowa wpłata do budżetu zwiększy środki na pozostałe tygodnie, zamiast zmieniać już zaksięgowane wydatki.</div>
+<div class="actions"><button onclick="addIncome()">Zapisz wpłatę</button></div>
+</div></div>
+
+<div class="modal" id="expenseModal"><div class="sheet"><div class="row"><h2>Dodaj wydatek</h2><button class="secondary" onclick="closeModal('expenseModal')">✕</button></div>
+<label>Tydzień</label><select id="eWeek"></select><label>Kwota</label><input id="eAmount" type="number" step=".01" placeholder="np. 84.50">
+<label>Na co?</label><input id="eDesc" placeholder="np. Biedronka"><label>Kategoria</label><select id="eCat"><option>Jedzenie</option><option>Paliwo</option><option>Dom</option><option>Dziecko</option><option>Rozrywka</option><option>Ubrania</option><option>Inne</option></select>
+<div class="actions"><button onclick="addExpense()">Zapisz wydatek</button></div></div></div>
+
+<script>
+const KEY="budzet_secure_v2";let state=null,currentMonth=null,key=null;
+const money=n=>new Intl.NumberFormat('pl-PL',{style:'currency',currency:'PLN',maximumFractionDigits:2}).format(n||0);
+async function derive(p,s){return crypto.subtle.deriveKey({name:"PBKDF2",salt:s,iterations:250000,hash:"SHA-256"},await crypto.subtle.importKey("raw",new TextEncoder().encode(p),"PBKDF2",false,["deriveKey"]),{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
+function b64(a){return btoa(String.fromCharCode(...new Uint8Array(a)))}function ub64(s){return Uint8Array.from(atob(s),c=>c.charCodeAt(0))}
+async function encrypt(obj){let iv=crypto.getRandomValues(new Uint8Array(12));let enc=await crypto.subtle.encrypt({name:"AES-GCM",iv},key,new TextEncoder().encode(JSON.stringify(obj)));return JSON.stringify({iv:b64(iv),data:b64(enc)})}
+async function decrypt(raw){let x=JSON.parse(raw);let dec=await crypto.subtle.decrypt({name:"AES-GCM",iv:ub64(x.iv)},key,ub64(x.data));return JSON.parse(new TextDecoder().decode(dec))}
+async function unlock(){
+ let p=document.getElementById("pass").value;if(p.length<4){document.getElementById("lockmsg").textContent="Hasło/PIN musi mieć co najmniej 4 znaki.";return}
+ let saved=localStorage.getItem(KEY);
+ try{
+  if(saved){let meta=JSON.parse(saved),salt=ub64(meta.salt);key=await derive(p,salt);state=await decrypt(meta.payload)}
+  else{let salt=crypto.getRandomValues(new Uint8Array(16));key=await derive(p,salt);state={pool:0,months:[]};localStorage.setItem(KEY,JSON.stringify({salt:b64(salt),payload:await encrypt(state)}))}
+  document.getElementById("lock").style.display="none";document.getElementById("app").style.display="block";render();
+ }catch(e){document.getElementById("lockmsg").textContent="Nieprawidłowe hasło/PIN.";document.getElementById("pass").value=""}
+}
+async function save(){let meta=JSON.parse(localStorage.getItem(KEY));meta.payload=await encrypt(state);localStorage.setItem(KEY,JSON.stringify(meta));render()}
+async function resetSavings(){if(!state)return;if(state.pool<=0)return alert("Pula oszczędności już wynosi 0 zł.");if(!confirm("Wyzerować całą pulę oszczędności? Tej operacji nie można cofnąć."))return;state.pool=0;await save()}
+
+function fixedTotal(m){return (m.fixedItems||[]).reduce((a,x)=>a+x.amount,0)}
+function recalcMonth(m){
+  m.fixed=fixedTotal(m);
+  let oldTotal=m.totalBudget||Math.max(0,m.salary-m.saving-m.fixed);
+  m.totalBudget=Math.max(0,m.salary-m.saving-m.fixed+(m.extraBudget||0));
+  if(m.periods){
+    let per=m.totalBudget/m.periods.length;
+    m.periods.forEach(p=>p.budget=per);
+  }
+}
+function ensureMonth(m){
+  if(!m.incomes)m.incomes=[];
+  if(!m.fixedItems){
+    m.fixedItems=[
+      {id:Date.now()+1,name:"Czynsz",amount:m.fixed||0},
+      {id:Date.now()+2,name:"Garaż",amount:0}
+    ].filter(x=>x.amount>0 || x.name==="Czynsz" || x.name==="Garaż");
+  }
+  if(m.extraBudget==null)m.extraBudget=0;
+  recalcMonth(m);
+}
+function openEditMonth(){
+ let m=state.months.find(x=>x.id===currentMonth);ensureMonth(m);
+ document.getElementById("xSalary").value=m.salary;
+ document.getElementById("xSave").value=m.saving;
+ document.getElementById("xFixed").value=m.fixed;
+ document.getElementById("editMonthModal").style.display="flex";
+}
+async function editMonth(){
+ let m=state.months.find(x=>x.id===currentMonth);
+ let ns=+document.getElementById("xSalary").value||0, nsave=+document.getElementById("xSave").value||0, nf=+document.getElementById("xFixed").value||0;
+ state.pool += nsave-m.saving;
+ m.salary=ns;m.saving=nsave;
+ ensureMonth(m);
+ let delta=nf-m.fixed;
+ if(Math.abs(delta)>0.005){
+   let adj=m.fixedItems.find(x=>x.name==="Korekta stałych");
+   if(adj) adj.amount+=delta; else m.fixedItems.push({id:Date.now(),name:"Korekta stałych",amount:delta});
+ }
+ m.fixed=fixedTotal(m);
+ m.totalBudget=Math.max(0,ns-nsave-m.fixed+(m.extraBudget||0));
+ if(m.periods){let per=m.totalBudget/m.periods.length;m.periods.forEach(p=>p.budget=per)}
+ await save();closeModal("editMonthModal");
+}
+function openFixed(){
+ let m=state.months.find(x=>x.id===currentMonth);ensureMonth(m);
+ renderFixed();document.getElementById("fixedModal").style.display="flex";
+}
+function renderFixed(){
+ let m=state.months.find(x=>x.id===currentMonth);ensureMonth(m);
+ document.getElementById("fixedList").innerHTML=m.fixedItems.map(x=>`<div class="expense"><div><b>${x.name}</b><div class="small">stała opłata</div></div><div class="row"><span class="money">${money(x.amount)}</span><button class="danger" style="padding:6px 9px;margin-left:7px" onclick="delFixed(${x.id})">×</button></div></div>`).join("");
+}
+async function addFixed(){
+ let m=state.months.find(x=>x.id===currentMonth),name=document.getElementById("fName").value.trim(),amount=+document.getElementById("fAmount").value||0;
+ if(!name||amount<=0)return alert("Podaj nazwę i kwotę.");
+ ensureMonth(m);m.fixedItems.push({id:Date.now(),name,amount});recalcMonth(m);await save();renderFixed();
+ document.getElementById("fName").value="";document.getElementById("fAmount").value="";
+}
+async function delFixed(id){
+ let m=state.months.find(x=>x.id===currentMonth);m.fixedItems=m.fixedItems.filter(x=>x.id!==id);recalcMonth(m);await save();renderFixed();
+}
+function openIncome(){document.getElementById("iAmount").value="";document.getElementById("iDesc").value="";document.getElementById("incomeModal").style.display="flex"}
+async function addIncome(){
+ let m=state.months.find(x=>x.id===currentMonth),amount=+document.getElementById("iAmount").value||0,desc=document.getElementById("iDesc").value.trim()||"Dodatkowa wpłata",mode=document.getElementById("iMode").value;
+ if(amount<=0)return alert("Podaj kwotę.");
+ ensureMonth(m);m.incomes.push({id:Date.now(),amount,desc,date:new Date().toLocaleDateString("pl-PL"),mode});
+ if(mode==="saving")state.pool+=amount;else{m.extraBudget=(m.extraBudget||0)+amount;recalcMonth(m)}
+ await save();closeModal("incomeModal");
+}
+function openMonth(){
+ const now=new Date(), ms=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+ const mm=document.getElementById("mMonth"), yy=document.getElementById("mYear");
+ mm.innerHTML=ms.map((x,i)=>`<option value="${i}">${x}</option>`).join("");
+ yy.innerHTML="";
+ for(let y=now.getFullYear()-2;y<=now.getFullYear()+5;y++)yy.innerHTML+=`<option value="${y}">${y}</option>`;
+ mm.value=now.getMonth(); yy.value=now.getFullYear(); document.getElementById("mStartDay").value=1;
+ document.getElementById("monthModal").style.display="flex";
+}
+function closeModal(id){document.getElementById(id).style.display="none"}
+
+function parseMonthName(name){
+ const months={styczeń:0,luty:1,marzec:2,kwiecień:3,maj:4,czerwiec:5,lipiec:6,sierpień:7,wrzesień:8,październik:9,listopad:10,grudzień:11};
+ let m=name.toLowerCase().match(/(styczeń|luty|marzec|kwiecień|maj|czerwiec|lipiec|sierpień|wrzesień|październik|listopad|grudzień)\s+(\d{4})/);
+ if(!m){let d=new Date();return {year:d.getFullYear(),month:d.getMonth()}}
+ return {year:+m[2],month:months[m[1]]};
+}
+function isoWeek(d){
+ let x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+ let day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);
+ let start=new Date(Date.UTC(x.getUTCFullYear(),0,1));
+ return Math.ceil((((x-start)/86400000)+1)/7);
+}
+function datePL(d){return d.toLocaleDateString('pl-PL',{day:'2-digit',month:'2-digit'})}
+function makePeriods(year,month,total,startDay=1){
+ let lastDay=new Date(year,month+1,0).getDate();
+ startDay=Math.min(Math.max(+startDay||1,1),lastDay);
+ let start=new Date(year,month,startDay), end=new Date(year,month+1,10), periods=[], cur=new Date(start), n=1;
+ while(cur<=end){
+   let ws=new Date(cur), we=new Date(cur); we.setDate(we.getDate()+6); if(we>end)we=new Date(end);
+   periods.push({week:n,start:datePL(ws),end:datePL(we),startISO:ws.toISOString(),endISO:we.toISOString()});
+   n++; cur=new Date(we);cur.setDate(cur.getDate()+1);
+ }
+ let per=total/periods.length; periods.forEach(p=>p.budget=per); return periods;
+}
+function spentForPeriod(m,w){return m.expenses.filter(e=>e.week===w).reduce((a,e)=>a+e.amount,0)}
+function dynamicBudget(m,w){
+ let idx=m.periods.findIndex(x=>x.week===w), base=m.periods[idx]?.budget||0;
+ if(idx<0)return 0;
+ let over=0; for(let i=0;i<idx;i++)over+=Math.max(0,spentForPeriod(m,m.periods[i].week)-m.periods[i].budget);
+ let remaining=m.periods.length-idx-1;
+ return Math.max(0,base-(remaining?over/remaining:0));
+}
+function currentPeriod(m){
+ let now=new Date();
+ return m.periods.find(p=>now>=new Date(p.startISO)&&now<=new Date(p.endISO))||null;
+}
+async function addMonth(){
+ let mi=+document.getElementById("mMonth").value, year=+document.getElementById("mYear").value, startDay=+document.getElementById("mStartDay").value||1;
+ let months=["Styczeń","Luty","Marzec","Kwiecień","Maj","Czerwiec","Lipiec","Sierpień","Wrzesień","Październik","Listopad","Grudzień"];
+ let name=months[mi]+" "+year,salary=+document.getElementById("mSalary").value||0,saving=+document.getElementById("mSave").value||0,fixed=+document.getElementById("mFixed").value||0;
+ let maxDay=new Date(year,mi+1,0).getDate(); if(startDay<1||startDay>maxDay)return alert("Nieprawidłowy dzień rozpoczęcia.");
+ if(!salary)return alert("Wpisz wypłatę.");
+ state.pool+=saving;
+ let carry=0;
+ let prev=state.months[0];
+ if(prev&&prev.closed&&prev.rolloverMode==="2"&&prev.carryForward) carry=prev.carryForward;
+ let total=Math.max(0,salary-saving-fixed)+carry;
+ let periods=makePeriods(year,mi,total,startDay);
+ let m={id:Date.now(),name,salary,saving,fixed,totalBudget:total,carryIn:carry,startDay,startDate:`${year}-${String(mi+1).padStart(2,"0")}-${String(startDay).padStart(2,"0")}`,extraBudget:0,fixedItems:[{id:Date.now()+1,name:"Czynsz",amount:fixed},{id:Date.now()+2,name:"Garaż",amount:0}],incomes:[],periods,expenses:[],closed:false};
+ state.months.unshift(m);currentMonth=m.id;await save();closeModal("monthModal")}
+function openExpense(){let m=state.months.find(x=>x.id===currentMonth),s=document.getElementById("eWeek");s.innerHTML="";m.periods.forEach(p=>s.innerHTML+=`<option value="${p.week}">Tydzień ${p.week} • ${p.start}–${p.end}</option>`);let cp=currentPeriod(m);if(cp)s.value=cp.week;document.getElementById("expenseModal").style.display="flex"}
+async function addExpense(){let m=state.months.find(x=>x.id===currentMonth),amount=+document.getElementById("eAmount").value||0;if(amount<=0)return alert("Wpisz kwotę.");m.expenses.push({id:Date.now(),amount,desc:document.getElementById("eDesc").value.trim()||"Wydatek",cat:document.getElementById("eCat").value,week:+document.getElementById("eWeek").value,date:new Date().toLocaleDateString("pl-PL")});await save();closeModal("expenseModal")}
+async function delExpense(id){let m=state.months.find(x=>x.id===currentMonth);m.expenses=m.expenses.filter(e=>e.id!==id);await save()}
+async function closeMonth(){
+ let m=state.months.find(x=>x.id===currentMonth);if(m.closed)return;
+ let spent=m.expenses.reduce((a,e)=>a+e.amount,0),left=Math.max(0,m.totalBudget-spent);
+ let choice=prompt("Koniec miesiąca. Niewydane: "+money(left)+"\nWpisz: 1 = oszczędności, 2 = dodaj do następnego miesiąca", "1");
+ if(choice!=="1"&&choice!=="2")return;
+ if(choice==="1")state.pool+=left;
+ m.closed=true;m.rollover=left;m.rolloverMode=choice;
+ if(choice==="2")m.carryForward=left;
+ await save();
+}
+async function deleteMonth(){let m=state.months.find(x=>x.id===currentMonth);if(!m)return;if(confirm("Usunąć miesiąc? Kwoty już dodane do puli oszczędności nie zostaną automatycznie odjęte.")){state.months=state.months.filter(x=>x.id!==m.id);currentMonth=state.months[0]?.id||null;await save()}}
+function selectMonth(id){currentMonth=id;render()}
+function chart(m){let cats={};m.expenses.forEach(e=>cats[e.cat]=(cats[e.cat]||0)+e.amount);let arr=Object.entries(cats);let c=document.getElementById("chart");if(!c)return;let x=c.getContext("2d"),d=devicePixelRatio||1,w=c.clientWidth,h=210;c.width=w*d;c.height=h*d;x.scale(d,d);x.clearRect(0,0,w,h);let max=Math.max(...arr.map(a=>a[1]),1),bw=Math.max(22,(w-40)/Math.max(arr.length,1)-12);arr.forEach((a,i)=>{let bh=(a[1]/max)*145,xx=20+i*((w-30)/Math.max(arr.length,1));x.fillStyle="#111827";x.fillRect(xx,h-35-bh,bw,bh);x.fillStyle="#374151";x.font="11px -apple-system";x.fillText(a[0].slice(0,9),xx,h-18);x.fillText(Math.round(a[1])+" zł",xx,h-40-bh)})}
+function toggleSummary(){let p=document.getElementById("summaryPanel");p.open=!p.open;if(p.open)renderSummary()}
+function renderSummary(){
+ let box=document.getElementById("summaryContent"); if(!state||!state.months.length){box.innerHTML="Brak danych.";return}
+ let months=state.months.map(m=>{let q=parseMonthName(m.name);return {...m,_year:q.year,_month:q.month}});
+ let years={}; months.forEach(m=>{let y=m._year; if(!years[y])years[y]={salary:0,saving:0,fixed:0,spent:0,extra:0,count:0}; years[y].salary+=m.salary||0;years[y].saving+=m.saving||0;years[y].fixed+=m.fixed||0;years[y].spent+=(m.expenses||[]).reduce((a,e)=>a+e.amount,0);years[y].extra+=(m.extraBudget||0);years[y].count++});
+ let yearHtml=Object.entries(years).sort((a,b)=>b[0]-a[0]).map(([y,v])=>`<div class="summaryitem"><b>${y}</b><br>Wypłaty: ${money(v.salary)}<br>Oszczędności: ${money(v.saving)}<br>Stałe: ${money(v.fixed)}<br>Wydatki: ${money(v.spent)}<br>Miesięcy: ${v.count}</div>`).join('');
+ let monthHtml=months.sort((a,b)=>{let da=new Date(a._year,a._month,1),db=new Date(b._year,b._month,1);return db-da}).map(m=>{let spent=(m.expenses||[]).reduce((a,e)=>a+e.amount,0),left=Math.max(0,(m.totalBudget||0)-spent);return `<div class="summaryitem"><b>${m.name}</b><br>Budżet: ${money(m.totalBudget||0)}<br>Wydatki: ${money(spent)}<br>Pozostało: ${money(left)}<br>Oszczędności: ${money(m.saving||0)}</div>`}).join('');
+ let weeks=[];months.forEach(m=>(m.periods||[]).forEach(p=>weeks.push({m,p,spent:spentForPeriod(m,p.week),budget:dynamicBudget(m,p.week)})));
+ let weekHtml=weeks.slice(-12).reverse().map(x=>`<div class="summaryitem"><b>${x.m.name} · tydz. ${x.p.week}</b><br>Budżet: ${money(x.budget)}<br>Wydano: ${money(x.spent)}<br>Pozostało: ${money(Math.max(0,x.budget-x.spent))}</div>`).join('');
+ box.innerHTML=`<div class="small" style="margin-bottom:10px">Zestawienie zapisanych danych. Kwoty są liczone lokalnie na urządzeniu.</div><h3>Rok</h3><div class="summarygrid">${yearHtml}</div><h3>Miesiące</h3><div class="summarygrid">${monthHtml}</div><h3>Ostatnie tygodnie</h3><div class="summarygrid">${weekHtml||'<div>Brak tygodni.</div>'}</div>`;
+}
+
+function render(){
+ if(!state)return;
+ document.getElementById("pool").textContent=money(state.pool);
+ let area=document.getElementById("monthArea");
+ if(!state.months.length){area.innerHTML="";document.getElementById("empty").style.display="block";return}
+ document.getElementById("empty").style.display="none";
+ if(!currentMonth)currentMonth=state.months[0].id;
+ let m=state.months.find(x=>x.id===currentMonth)||state.months[0];
+ ensureMonth(m);
+ if(!m.periods){let p=parseMonthName(m.name);m.totalBudget=m.salary-m.saving-m.fixed;m.periods=makePeriods(p.year,p.month,m.totalBudget)}
+ let cp=currentPeriod(m);
+ let tabs=state.months.map(x=>`<button class="tab ${x.id===m.id?"active":""}" onclick="selectMonth(${x.id})">${x.name}</button>`).join("");
+ let spent=m.expenses.reduce((a,e)=>a+e.amount,0),remaining=Math.max(0,m.totalBudget-spent),weeks="";
+ m.periods.forEach(p=>{
+   let used=spentForPeriod(m,p.week),budget=dynamicBudget(m,p.week),left=budget-used,isCurrent=cp&&cp.week===p.week;
+   let over=Math.max(0,used-p.budget),pct=budget>0?Math.min(100,Math.max(0,used/budget*100)):100;
+   weeks+=`<div class="card week" style="${isCurrent?'border:2px solid #111827':''}">
+   <div class="weekhead"><b>Tydzień ${p.week} ${isCurrent?'• TERAZ':''}</b><span class="${left<0?"red":"green"} money">${money(left)}</span></div>
+   <div class="stat">${p.start} – ${p.end} · budżet po korektach ${money(budget)} · wydano ${money(used)}</div>
+   <div class="progress"><div class="bar" style="width:${pct}%"></div></div>
+   ${over>0?`<div class="notice">⚠️ Przekroczenie ${money(over)}. Nadwyżka jest rozłożona na pozostałe tygodnie.</div>`:""}
+   ${m.expenses.filter(e=>e.week===p.week).map(e=>`<div class="expense"><div><b>${e.desc}</b><div class="small">${e.cat} · ${e.date}</div></div><div class="row"><span class="money">${money(e.amount)}</span><button class="danger" style="padding:6px 9px;margin-left:7px" onclick="delExpense(${e.id})">×</button></div></div>`).join("")||'<div class="small" style="margin-top:10px">Brak wydatków.</div>'}
+   </div>`;
+ });
+ area.innerHTML=`<div class="tabs">${tabs}</div><div class="card"><div class="row"><div><div class="sub">${m.name}</div><div class="big">${money(m.salary)}</div></div>${m.closed?"<span>🔒 Zamknięty</span>":""}</div>
+ <div class="grid" style="margin-top:15px"><div><div class="stat">Oszczędności z wypłaty</div><div class="money green">${money(m.saving)}</div></div><div><div class="stat">Stałe opłaty</div><div class="money">${money(m.fixed)}</div></div></div>
+ <div class="notice"><b>Okres:</b> ${m.periods[0].start} – ${m.periods[m.periods.length-1].end}<br><b>Budżet na życie:</b> ${money(m.totalBudget)}${m.carryIn?`<br><b>Z poprzedniego miesiąca:</b> ${money(m.carryIn)}`:""}<br><b>Pozostało:</b> ${money(remaining)}<br>Niewydana kwota przy zamknięciu trafia do oszczędności.</div>
+ <div class="grid" style="margin-top:10px"><button class="secondary" onclick="openEditMonth()">✎ Edytuj wypłatę / cel</button><button class="secondary" onclick="openFixed()">🧾 Stałe opłaty</button></div>
+
+ ${!m.closed?'<button class="secondary topbtn" onclick="closeMonth()">Zamknij miesiąc → wybierz co z resztą</button>':`<div class="notice">Niewydane przeniesione do oszczędności: <b>${money(m.rollover)}</b></div>`}
+ <div class="notice"><b>Wpłaty dodatkowe:</b> ${m.incomes.length?m.incomes.map(x=>x.desc+" "+money(x.amount)).join(" · "):"brak"}</div><canvas id="chart"></canvas><button class="secondary topbtn" onclick="deleteMonth()">Usuń miesiąc</button></div>${weeks}`;
+ setTimeout(()=>chart(m),0); if(document.getElementById("summaryPanel")?.open) renderSummary()
+}</script>
+<script>if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js");</script>
+</body></html>
